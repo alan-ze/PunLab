@@ -1,0 +1,14 @@
+# Configuration for Ruff
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"] # Enable Pyflakes, pycodestyle, and Isort
+ignore = []
+
+# Configuration for Pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"
