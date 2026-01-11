@@ -9,6 +9,8 @@ authors = [{ name = "Alan", email = "alanzenh@gmail.com" }]
 dependencies = [
     "pandas>=2.2,<3",
     "numpy>=2.0,<3",
+    "openpyxl>=3.1.5,<4",
+    "xlsxwriter>=3.2.9,<4"
 ]
 
 [tool.setuptools.packages.find]
