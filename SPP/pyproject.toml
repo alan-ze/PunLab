@@ -1,13 +1,26 @@
-# Configuration for Ruff
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spp"
+version = "0.1.0"
+authors = [{ name = "Alan", email = "alanzenh@gmail.com" }]
+dependencies = [
+    "pandas>=2.2,<3",
+    "numpy>=2.0,<3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"] # Enable Pyflakes, pycodestyle, and Isort
-ignore = []
+select = ["E", "F", "I"]
 
-# Configuration for Pytest
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
