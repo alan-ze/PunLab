@@ -1,8 +1,13 @@
 Metadata-Version: 2.4
 Name: spp
 Version: 0.1.0
+Summary: Data science pipeline for SPP
 Author-email: Alan <alanzenh@gmail.com>
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
 Requires-Dist: pandas<3,>=2.2
 Requires-Dist: numpy<3,>=2.0
 Requires-Dist: openpyxl<4,>=3.1.5
 Requires-Dist: xlsxwriter<4,>=3.2.9
+
+# Program to turn Excel files into SPP processed.txt files

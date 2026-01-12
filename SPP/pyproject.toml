@@ -6,6 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "spp"
 version = "0.1.0"
 authors = [{ name = "Alan", email = "alanzenh@gmail.com" }]
+description = "Data science pipeline for SPP"
+readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
     "pandas>=2.2,<3",
     "numpy>=2.0,<3",
@@ -21,9 +24,9 @@ line-length = 88
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "B", "UP"] 
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-ra -q"
+addopts = "-ra -q --cov=spp"
