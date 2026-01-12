@@ -2,3 +2,4 @@ pandas<3,>=2.2
 numpy<3,>=2.0
 openpyxl<4,>=3.1.5
 xlsxwriter<4,>=3.2.9
+tqdm>=4.66

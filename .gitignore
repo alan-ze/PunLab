@@ -43,6 +43,7 @@ data/
 outputs/
 models/
 presentations/
+experiments/
 *.csv
 *.xlsx
 *.xls

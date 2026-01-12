@@ -1,154 +1,121 @@
 import os
-from unittest.mock import MagicMock, patch
-
 import pytest
+from unittest.mock import MagicMock, patch, ANY
+from spp.wrapper import SPPMatlabProcessor
 
-from spp.wrapper import run_matlab_wrapper
+# -------------------------------------------------------------------------
+# Fixtures
+# -------------------------------------------------------------------------
 
-# ==========================================
-# 1. MOCKED UNIT TESTS (Fast, No License Needed)
-# ==========================================
-
-
-@patch("matlab.engine.start_matlab")
-def test_wrapper_calls_matlab_correctly(mock_start_matlab):
+@pytest.fixture
+def mock_matlab():
     """
-    Verifies that the python wrapper calculates paths correctly and
-    calls the MATLAB function with the right arguments.
+    Mocks the entire matlab.engine module.
+    Crucially, we must Mock the Exception class so it can be caught in try/except blocks.
     """
-    # --- Setup ---
-    # Create a mock engine object that start_matlab returns
-    mock_eng = MagicMock()
-    mock_start_matlab.return_value = mock_eng
+    with patch("spp.wrapper.matlab.engine") as mock_pkg:
+        # 1. Define a fake Exception class for the mock to use
+        class FakeMatlabExecutionError(Exception):
+            pass
+        
+        # 2. Assign this fake class to the mock package
+        mock_pkg.MatlabExecutionError = FakeMatlabExecutionError
+        
+        # 3. Setup the engine instance that start_matlab() returns
+        mock_eng_instance = MagicMock()
+        mock_pkg.start_matlab.return_value = mock_eng_instance
+        
+        yield mock_pkg, mock_eng_instance, FakeMatlabExecutionError
 
-    # Fake inputs
-    fake_data_path = "/path/to/data/Test_Experiment.csv"
-    fake_matlab_dir = "./matlab_code"
+# -------------------------------------------------------------------------
+# Unit Tests
+# -------------------------------------------------------------------------
 
-    # --- Action ---
-    run_matlab_wrapper(fake_data_path, fake_matlab_dir)
+def test_context_manager_lifecycle(mock_matlab):
+    """
+    Verifies that the engine starts on __enter__ and quits on __exit__.
+    """
+    mock_pkg, mock_eng, _ = mock_matlab
+    folder_path = "./matlab_src"
+    abs_folder_path = os.path.abspath(folder_path)
 
-    # --- Assertions ---
+    # Act: Use the context manager
+    with SPPMatlabProcessor(folder_path) as processor:
+        # Assert: Engine started
+        mock_pkg.start_matlab.assert_called_once()
+        assert processor.eng == mock_eng
+        
+        # Assert: Path added (using absolute path)
+        mock_eng.addpath.assert_called_with(abs_folder_path, nargout=0)
+        
+        # Assert: Optimization (figures hidden)
+        mock_eng.eval.assert_called_with("set(0, 'DefaultFigureVisible', 'off');", nargout=0)
 
-    # 1. Did the engine start?
-    mock_start_matlab.assert_called_once()
-
-    # 2. Did we add the MATLAB script directory to the path?
-    # We check if addpath was called. We use os.path.abspath to match the wrapper's logic.
-    expected_path = os.path.abspath(fake_matlab_dir)
-    mock_eng.addpath.assert_called_with(expected_path, nargout=0)
-
-    # 3. Did we call the specific analysis function?
-    # We expect the absolute filepath without extension (wrapper now passes full path)
-    expected_fname = os.path.splitext(os.path.abspath(fake_data_path))[0]
-    mock_eng.run_spp_analysis.assert_called_with(expected_fname, nargout=0)
-
-    # 4. Did the engine quit properly?
+    # Assert: Engine quit on exit
     mock_eng.quit.assert_called_once()
 
 
-@patch("matlab.engine.start_matlab")
-def test_wrapper_handles_matlab_error(mock_start_matlab):
+def test_process_file_success(mock_matlab):
     """
-    Verifies that the wrapper gracefully handles a MATLAB execution error.
+    Verifies that process_file correctly formats the filename and calls the engine.
     """
-    mock_eng = MagicMock()
-    mock_start_matlab.return_value = mock_eng
+    _, mock_eng, _ = mock_matlab
+    processor = SPPMatlabProcessor("./dummy_path")
+    
+    # Manually attach the mock engine (simulating being inside the 'with' block)
+    processor.eng = mock_eng
+    
+    input_file = "data/raw/experiment_data.csv"
+    expected_arg = os.path.splitext(os.path.abspath(input_file))[0]
 
-    # Simulate an error when the function is called
-    # We have to import the error class to mock it, or just use a generic Exception for simplicity
-    # if you want to be specific, you'd need to mock matlab.engine.MatlabExecutionError
-    mock_eng.run_spp_analysis.side_effect = Exception("Simulated MATLAB Crash")
+    # Act
+    processor.process_file(input_file)
 
-    # Run the wrapper (it should catch the error and print, not crash)
-    try:
-        run_matlab_wrapper("dummy.csv", "dummy_dir")
-    except Exception:
-        pytest.fail(
-            "The wrapper should have caught the exception but raised it instead."
-        )
-
-    # Ensure quit is still called even after an error (cleanup check)
-    mock_eng.quit.assert_called_once()
-
-
-# # ==========================================
-# # 2. INTEGRATION TESTS (Slow, Requires License)
-# # ==========================================
+    # Assert
+    mock_eng.run_spp_analysis.assert_called_once()
+    
+    # Check arguments: (filename_no_ext, nargout=0)
+    args, kwargs = mock_eng.run_spp_analysis.call_args
+    assert args[0] == expected_arg
+    assert kwargs == {'nargout': 0}
 
 
-# @pytest.mark.integration
-# def test_real_matlab_execution():
-#     """
-#     This test ACTUALLY runs MATLAB.
-#     It requires the environment to be set up correctly and a valid license.
-#     """
-#     # Define paths to real files for the test
-#     # You might want to create a tiny dummy .m file and dummy .csv for this test
-#     # to avoid running your heavy scientific calculation.
+def test_process_file_catches_matlab_error(mock_matlab, capsys):
+    """
+    Verifies that if MATLAB throws a specific execution error, the wrapper catches it 
+    and prints to stdout instead of crashing.
+    """
+    _, mock_eng, FakeMatlabExecutionError = mock_matlab
+    processor = SPPMatlabProcessor("./dummy_path")
+    processor.eng = mock_eng
 
-#     real_data = "tests/fixtures/dummy_data.csv"  # Create this small file
-#     real_matlab_dir = "matlab_code"  # Ensure this exists
+    # Arrange: Make the engine raise a MatlabExecutionError
+    mock_eng.run_spp_analysis.side_effect = FakeMatlabExecutionError("Variables missing")
 
-#     # Skip if files don't exist (prevents failing on machines without data)
-#     if not os.path.exists(real_matlab_dir):
-#         pytest.skip("MATLAB code directory not found")
+    # Act
+    processor.process_file("bad_file.csv")
 
-#     # Example assertion (this depends on what your wrapper returns/does)
-#     # Since your wrapper prints to stdout, we might just check it runs without error
-#     try:
-#         # Pass a non-existent file to trigger the file-not-found check
-#         # inside your MATLAB script, which is safer than running a full calc.
-#         run_matlab_wrapper("non_existent_file.csv", real_matlab_dir)
-#     except Exception as e:
-#         pytest.fail(f"Integration test failed with error: {e}")
+    # Assert
+    captured = capsys.readouterr()
+    assert "MATLAB Error on" in captured.out
+    assert "Variables missing" in captured.out
 
-# import pytest
-# import os
-# from src.wrapper import run_matlab_wrapper
-# from unittest.mock import patch, MagicMock
 
-# # --- 1. Define Fixtures (The Data Providers) ---
+def test_process_file_catches_generic_error(mock_matlab, capsys):
+    """
+    Verifies that generic Python errors (e.g. file permission issues) are caught.
+    """
+    _, mock_eng, _ = mock_matlab
+    processor = SPPMatlabProcessor("./dummy_path")
+    processor.eng = mock_eng
 
-# @pytest.fixture
-# def mock_data_file(tmp_path):
-#     """Creates a temporary dummy CSV file."""
-#     # tmp_path is a pathlib object provided by pytest
-#     d = tmp_path / "data"
-#     d.mkdir()
-#     p = d / "test_data.csv"
-#     p.write_text("Time,Strain,Rate,Stress\n1,2,3,4") # Create actual file content
-#     return str(p) # Return the path as a string
+    # Arrange: Make the engine raise a standard Exception
+    mock_eng.run_spp_analysis.side_effect = Exception("Unexpected crash")
 
-# @pytest.fixture
-# def mock_matlab_folder(tmp_path):
-#     """Creates a temporary dummy MATLAB folder."""
-#     d = tmp_path / "matlab_code"
-#     d.mkdir()
-#     # Create a dummy .m file just in case
-#     p = d / "run_spp_analysis.m"
-#     p.write_text("function run_spp_analysis(f); end")
-#     return str(d)
+    # Act
+    processor.process_file("crash_file.csv")
 
-# # --- 2. The Test Function ---
-
-# @patch('matlab.engine.start_matlab')
-# def test_wrapper_with_fixtures(mock_start_matlab, mock_data_file, mock_matlab_folder):
-#     """
-#     Notice how 'mock_data_file' and 'mock_matlab_folder' are passed
-#     as arguments to this test function? Pytest sees the names match
-#     the fixtures above and automatically injects the return values.
-#     """
-
-#     # Setup the mock engine
-#     mock_eng = MagicMock()
-#     mock_start_matlab.return_value = mock_eng
-
-#     # CALL THE WRAPPER
-#     # We pass the paths that pytest generated for us
-#     run_matlab_wrapper(mock_data_file, mock_matlab_folder)
-
-#     # ASSERT
-#     # Verify the wrapper stripped the extension correctly
-#     # "test_data.csv" -> "test_data"
-#     mock_eng.run_spp_analysis.assert_called_with("test_data", nargout=0)
+    # Assert
+    captured = capsys.readouterr()
+    assert "Python Error on" in captured.out
+    assert "Unexpected crash" in captured.out

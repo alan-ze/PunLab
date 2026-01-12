@@ -30,3 +30,4 @@ test = "pytest"
 lint = "ruff check --fix ."
 format = "ruff format ."
 check = { depends-on = ["lint", "test"] }
+process-data = "python scripts/run_pipeline.py"
