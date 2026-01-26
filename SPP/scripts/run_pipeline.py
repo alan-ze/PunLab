@@ -33,6 +33,8 @@ def main(input_folder, output_folder, matlab_folder_path):
                     
             except Exception as e:
                 print(f"Error processing {file_path.name}: {e}")
+    ## pixi run python scripts\run_pipeline.py "C:\Users\alanh\PunLab\spp\experiments\Pigs_NegCon" "C:\Users\alanh\PunLab\spp\experiments\Pigs_NegCon" "C:\Users\alanh\PunLab\spp\matlab_code"
+
 
 
 def start_from_csv(input_folder, matlab_folder_path):

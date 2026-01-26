@@ -68,7 +68,7 @@ def convert_txt_to_csv(file_path):
             output_df["Shear rate"] = df["Rate"]
 
         output_df["Angular frequency"] = frequency
-        output_df["Oscillation strain"] = max_strain * 100  # Convert to percentage
+        output_df["Oscillation strain"] = max_strain
 
         # 6. Save to CSV
         directory = os.path.dirname(file_path)
