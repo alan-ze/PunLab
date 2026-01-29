@@ -103,7 +103,7 @@ def process_directory(target_dir):
                     original_filename = data_item['filename']
 
                     # Create Sheet Name
-                    sheet_name = f"{max_ang_freq}rad - {max_osc_strain}%"
+                    sheet_name = f"{max_ang_freq}rad - {max_osc_strain}"
                     
                     # Sanitize Sheet Name
                     invalid_chars = [':', '\\', '/', '?', '*', '[', ']']
