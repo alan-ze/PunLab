@@ -26,7 +26,7 @@ function run_spp_analysis(fname_input, varargin)
 
     ftype = 2; 
     var_loc = [1,2,3,4];
-    var_conv = [1,0.01,1,1];
+    var_conv = [1,1,1,1];
     data_trunc = [0,1,287];
 
     % ANALYSIS SETTINGS
@@ -43,7 +43,7 @@ function run_spp_analysis(fname_input, varargin)
 
     % OUTPUT SETTINGS
     out_type = 1;
-    is_fsf = 1;
+    is_fsf = 0;
     save_figs = 0; % Keep 0 for batch processing to avoid popup windows
 
     % =======================Run the SPP analysis===============================

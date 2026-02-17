@@ -34,7 +34,7 @@ if ftype == 1
     end
 elseif ftype == 2
     f_name = sprintf('%s.csv',fname);
-    a_temp=xlsread(f_name);
+    a_temp=readmatrix(f_name);  % readmatrix for linux
     a_temp_cut=nan(size(a_temp,1),4);
     a_temp_cut(:,[1,2,4])=[a_temp(:,var_loc(1))*var_conv(1),...
         a_temp(:,var_loc(2))*var_conv(2),a_temp(:,var_loc(4))*var_conv(4)];
