@@ -46,7 +46,7 @@ def process_directory(target_dir):
     file_groups = {}
     for file_path in csv_files:
         filename = os.path.basename(file_path)
-        group_id = filename[:9]
+        group_id = filename[:10]
 
         if group_id not in file_groups:
             file_groups[group_id] = []
